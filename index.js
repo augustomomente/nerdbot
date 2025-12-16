@@ -40,7 +40,6 @@ client.on("messageCreate", async (message) => {
       name: channel.name,
       message: {
         content: firstMessage.content || " ",
-        embeds: firstMessage.embeds,
         files: firstMessage.attachments.map(a => a.url),
       },
     });
@@ -65,3 +64,4 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
