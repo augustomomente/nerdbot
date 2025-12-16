@@ -41,7 +41,7 @@ client.on("messageCreate", async (message) => {
       name: channel.name,
       message: {
         content: firstMessage.content || " ",
-        embeds: firstMessage.embeds,
+        
       },
     });
 
@@ -53,5 +53,6 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
 
 
