@@ -34,7 +34,8 @@ client.on("messageCreate", async (message) => {
   try {
     const parentForum = await client.channels.fetch(TARGET_FORUM_ID);
 
-    const firstMessage = await channel.fetchStarterMessage();
+    const firstMessage = await channel.messages.fetch(channel.id);
+
 
     const newThread = await parentForum.threads.create({
       name: channel.name,
@@ -52,4 +53,5 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
 
