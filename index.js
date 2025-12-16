@@ -66,8 +66,9 @@ client.on("messageCreate", async (message) => {
 
     // envia no canal mão-do-dia
     await maoDoDiaChannel.send(
-      `**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
-    );
+  `@everyone\n**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
+);
+
 
     await message.reply(`✅ Post replicado com sucesso em ${newThread.url}`);
   } catch (err) {
@@ -77,3 +78,4 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
