@@ -8,8 +8,8 @@ const client = new Client({
   ],
 });
 
-// 🔴 VAMOS PREENCHER ISSO NO PRÓXIMO PASSO
-const DESTINATION_FORUM_ID = "1437532575529832610";
+const SOURCE_FORUM_ID = "1447654586872762429"; // mãos-prontas
+const TARGET_FORUM_ID = "1437532575529832610"; // discussão-de-mãos
 
 client.once("ready", () => {
   console.log(`Bot online como ${client.user.tag}`);
@@ -19,34 +19,37 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (message.content !== "!post") return;
 
-  if (!message.channel.isThread()) {
-    return message.reply("❌ Use o comando dentro de um tópico de fórum.");
+  const channel = message.channel;
+
+  // só funciona dentro de post de fórum
+  if (!channel.isThread()) {
+    return message.reply("❌ Use o comando dentro de um post do fórum.");
   }
 
-  const sourceThread = message.channel;
-  const sourceForum = sourceThread.parent;
-
-  if (sourceForum.name !== "mãos-prontas") {
-    return message.reply("❌ Este comando só funciona em mãos-prontas.");
+  // verifica se o post é do fórum correto
+  if (channel.parentId !== SOURCE_FORUM_ID) {
+    return message.reply("❌ Este comando só funciona no fórum mãos-prontas.");
   }
 
-  const starterMessage = await sourceThread.fetchStarterMessage();
-  if (!starterMessage) {
-    return message.reply("❌ Não consegui ler o post original.");
+  try {
+    const parentForum = await client.channels.fetch(TARGET_FORUM_ID);
+
+    const messages = await channel.messages.fetch({ limit: 1 });
+    const firstMessage = messages.first();
+
+    const newThread = await parentForum.threads.create({
+      name: channel.name,
+      message: {
+        content: firstMessage.content || " ",
+        embeds: firstMessage.embeds,
+      },
+    });
+
+    await message.reply(`✅ Post replicado com sucesso em ${newThread.url}`);
+  } catch (err) {
+    console.error(err);
+    message.reply("❌ Erro ao replicar o post.");
   }
-
-  const destinationForum = await message.guild.channels.fetch(
-    DESTINATION_FORUM_ID
-  );
-
-  await destinationForum.threads.create({
-    name: sourceThread.name,
-    message: {
-      content: starterMessage.content,
-    },
-  });
-
-  message.reply("✅ Post replicado em discussão-de-mãos.");
 });
 
 client.login(process.env.TOKEN);
