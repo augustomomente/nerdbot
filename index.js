@@ -66,7 +66,7 @@ client.on("messageCreate", async (message) => {
 
     // envia no canal mão-do-dia
     await maoDoDiaChannel.send(
-  `@everyone\n**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
+  `**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
 );
 
 
@@ -78,4 +78,5 @@ client.on("messageCreate", async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
 
