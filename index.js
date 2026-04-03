@@ -1,4 +1,3 @@
-require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 
 const client = new Client({
@@ -9,98 +8,74 @@ const client = new Client({
   ],
 });
 
-const DESTINATION_FORUM_ID = "1437532575529832610";
-
-// 🔒 Timeout helper
-function withTimeout(promise, ms, errorMsg) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(errorMsg)), ms)
-    ),
-  ]);
-}
+const SOURCE_FORUM_ID = "1447654586872762429"; // mãos-prontas
+const TARGET_FORUM_ID = "1437532575529832610"; // discussão-de-mãos
+const MAO_DO_DIA_CHANNEL_ID = "1437531974565761024"; // mão-do-dia
 
 client.once("ready", () => {
-  console.log(`✅ Bot online como ${client.user.tag}`);
+  console.log(`Bot online como ${client.user.tag}`);
 });
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (message.content !== "!post") return;
 
-  console.log("📩 Comando recebido:", message.content);
+  const channel = message.channel;
 
-  // ⚡ resposta imediata
-  message.channel.send("⏳ Processando...");
+  // precisa ser post de fórum
+  if (!channel.isThread()) {
+    return message.reply("❌ Use o comando dentro de um post do fórum.");
+  }
+
+  // precisa ser do fórum mãos-prontas
+  if (channel.parentId !== SOURCE_FORUM_ID) {
+    return message.reply("❌ Este comando só funciona no fórum mãos-prontas.");
+  }
 
   try {
-    if (!message.channel.isThread()) {
-      return message.channel.send(
-        "❌ Use o comando dentro de um tópico de fórum."
-      );
+    const parentForum = await client.channels.fetch(TARGET_FORUM_ID);
+    const maoDoDiaChannel = await client.channels.fetch(MAO_DO_DIA_CHANNEL_ID);
+
+    // mensagem original do post
+    const firstMessage = await channel.fetchStarterMessage();
+
+    // cria o novo post replicado
+    const newThread = await parentForum.threads.create({
+      name: channel.name,
+      message: {
+        content: firstMessage.content || " ",
+        files: [...firstMessage.attachments.values()].map(a => a.url),
+      },
+    });
+
+    // busca mensagens do canal mão-do-dia para achar o último número
+    const messages = await maoDoDiaChannel.messages.fetch({ limit: 100 });
+
+    let lastNumber = 0;
+
+    for (const msg of messages.values()) {
+      const match = msg.content.match(/MÃO DO DIA\s+(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > lastNumber) lastNumber = num;
+      }
     }
 
-    const sourceThread = message.channel;
-    const sourceForum = sourceThread.parent;
+    const maoDoDiaNumber = lastNumber + 1;
+    const numeroFormatado = String(maoDoDiaNumber).padStart(2, "0");
 
-    if (!sourceForum || sourceForum.name !== "mãos-prontas") {
-      return message.channel.send(
-        "❌ Este comando só funciona em mãos-prontas."
-      );
-    }
+    // envia no canal mão-do-dia
+    await maoDoDiaChannel.send(
+  `**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
+);
 
-    console.log("📂 Thread:", sourceThread.name);
 
-    // 🔒 busca com timeout
-    const starterMessage = await withTimeout(
-      sourceThread.fetchStarterMessage(),
-      5000,
-      "Timeout ao buscar mensagem"
-    );
-
-    if (!starterMessage) {
-      return message.channel.send(
-        "❌ Não consegui ler o post original."
-      );
-    }
-
-    console.log("📄 Mensagem carregada");
-
-    // 🔥 remove @everyone e @here
-    const cleanContent = starterMessage.content
-      .replace(/@everyone/g, "")
-      .replace(/@here/g, "")
-      .trim();
-
-    const destinationForum = await withTimeout(
-      message.guild.channels.fetch(DESTINATION_FORUM_ID),
-      5000,
-      "Timeout ao buscar fórum"
-    );
-
-    console.log("📍 Fórum encontrado");
-
-    await withTimeout(
-      destinationForum.threads.create({
-        name: sourceThread.name,
-        message: {
-          content: cleanContent || "(post sem texto)",
-        },
-      }),
-      8000,
-      "Timeout ao criar thread"
-    );
-
-    console.log("✅ Post criado");
-
-    message.channel.send("✅ Post replicado com sucesso!");
+    await message.reply(`✅ Post replicado com sucesso em ${newThread.url}`);
   } catch (err) {
-    console.error("❌ ERRO:", err.message);
-
-    message.channel.send(
-      "❌ Erro ao processar (timeout ou falha da API)."
-    );
+    console.error(err);
+    message.reply("❌ Erro ao replicar o post.");
   }
 });
-client.login(process.env.NERDBOT_TOKEN);
+
+client.login(process.env.TOKEN);
+
