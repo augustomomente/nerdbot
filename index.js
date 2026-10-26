@@ -92,9 +92,9 @@ client.on("messageCreate", async (message) => {
       // Publica número, título da mão e link do fórum Premium
       await maoDoDiaChannel.send(
         `**MÃO DO DIA ${numeroFormatado}**\n` +
+        `${newThread.url}`
         `**${channel.name}**\n` +
         `🔒 Mão exclusiva para membros Premium\n` +
-        `${newThread.url}`
       );
     }
 
