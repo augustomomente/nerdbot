@@ -100,7 +100,7 @@ client.on("messageCreate", async (message) => {
         `**MÃO DO DIA ${numeroFormatado}**\n` +
         `${newThread.url}\n` +
         `**${channel.name}**\n` +
-        `🔒 Mão exclusiva para membros Premium`
+        `🔒 Mão exclusiva para membros Premium 🔒`
       );
     }
 
