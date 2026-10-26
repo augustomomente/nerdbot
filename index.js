@@ -28,7 +28,9 @@ client.on("messageCreate", async (message) => {
 
   // O comando precisa ser usado dentro de um tópico de fórum
   if (!channel.isThread()) {
-    return message.reply("❌ Use o comando dentro de um post do fórum.");
+    return message.reply(
+      "❌ Use o comando dentro de um post do fórum."
+    );
   }
 
   // O comando só pode ser usado no fórum mãos-prontas
@@ -61,7 +63,7 @@ client.on("messageCreate", async (message) => {
       },
     });
 
-    // Somente o comando !post publica no canal mão-do-dia
+    // Somente !post publica no canal mão-do-dia
     if (command === "!post") {
       const maoDoDiaChannel = await client.channels.fetch(
         MAO_DO_DIA_CHANNEL_ID
@@ -89,12 +91,16 @@ client.on("messageCreate", async (message) => {
       const maoDoDiaNumber = lastNumber + 1;
       const numeroFormatado = String(maoDoDiaNumber).padStart(2, "0");
 
-      // Publica número, título da mão e link do fórum Premium
+      // Publica na ordem solicitada:
+      // 1. Número da mão
+      // 2. Link para a mão
+      // 3. Título da mão
+      // 4. Aviso de exclusividade Premium
       await maoDoDiaChannel.send(
         `**MÃO DO DIA ${numeroFormatado}**\n` +
-        `${newThread.url}`
+        `${newThread.url}\n` +
         `**${channel.name}**\n` +
-        `🔒 Mão exclusiva para membros Premium\n` +
+        `🔒 Mão exclusiva para membros Premium`
       );
     }
 
