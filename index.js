@@ -1,4 +1,3 @@
-
 const { Client, GatewayIntentBits } = require("discord.js");
 
 const client = new Client({
@@ -9,10 +8,10 @@ const client = new Client({
   ],
 });
 
-const SOURCE_FORUM_ID = "1447654586872762429";
-const FREE_FORUM_ID = "1437532575529832610";
-const PREMIUM_FORUM_ID = "1564377016038596699";
-const MAO_DO_DIA_CHANNEL_ID = "1437531974565761024";
+const SOURCE_FORUM_ID = "1447654586872762429"; // mãos-prontas
+const FREE_FORUM_ID = "1437532575529832610"; // discussão-de-mãos
+const PREMIUM_FORUM_ID = "1564377016038596699"; // mãos-premium
+const MAO_DO_DIA_CHANNEL_ID = "1437531974565761024"; // mão-do-dia
 
 client.once("ready", () => {
   console.log(`Bot online como ${client.user.tag}`);
@@ -22,21 +21,28 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   const command = message.content.trim();
+
   if (command !== "!post" && command !== "!postfree") return;
 
   const channel = message.channel;
 
+  // O comando precisa ser usado dentro de um tópico de fórum
   if (!channel.isThread()) {
     return message.reply("❌ Use o comando dentro de um post do fórum.");
   }
 
+  // O comando só pode ser usado no fórum mãos-prontas
   if (channel.parentId !== SOURCE_FORUM_ID) {
-    return message.reply("❌ Use este comando no fórum mãos-prontas.");
+    return message.reply(
+      "❌ Use este comando dentro do fórum mãos-prontas."
+    );
   }
 
   try {
+    // Busca a primeira mensagem do tópico original
     const firstMessage = await channel.fetchStarterMessage();
 
+    // Define o fórum de destino conforme o comando
     const targetForumId =
       command === "!post"
         ? PREMIUM_FORUM_ID
@@ -44,35 +50,55 @@ client.on("messageCreate", async (message) => {
 
     const targetForum = await client.channels.fetch(targetForumId);
 
+    // Publica a mão no fórum de destino
     const newThread = await targetForum.threads.create({
       name: channel.name,
       message: {
         content: firstMessage.content || " ",
-        files: [...firstMessage.attachments.values()].map(a => a.url),
+        files: [...firstMessage.attachments.values()].map(
+          (attachment) => attachment.url
+        ),
       },
     });
 
+    // Somente o comando !post publica no canal mão-do-dia
     if (command === "!post") {
-      const maoDoDiaChannel = await client.channels.fetch(MAO_DO_DIA_CHANNEL_ID);
-      const messages = await maoDoDiaChannel.messages.fetch({ limit: 100 });
+      const maoDoDiaChannel = await client.channels.fetch(
+        MAO_DO_DIA_CHANNEL_ID
+      );
+
+      // Busca as últimas mensagens para identificar a numeração
+      const messages = await maoDoDiaChannel.messages.fetch({
+        limit: 100,
+      });
 
       let lastNumber = 0;
 
       for (const msg of messages.values()) {
         const match = msg.content.match(/MÃO DO DIA\s+(\d+)/);
+
         if (match) {
           const num = parseInt(match[1], 10);
-          if (num > lastNumber) lastNumber = num;
+
+          if (num > lastNumber) {
+            lastNumber = num;
+          }
         }
       }
 
-      const numeroFormatado = String(lastNumber + 1).padStart(2, "0");
+      const maoDoDiaNumber = lastNumber + 1;
+      const numeroFormatado = String(maoDoDiaNumber).padStart(2, "0");
 
+      // Publica número, título da mão e link do fórum Premium
       await maoDoDiaChannel.send(
-        `**MÃO DO DIA ${numeroFormatado}**\n${newThread.url}`
+        `**MÃO DO DIA ${numeroFormatado}**\n` +
+        `**${channel.name}**\n` +
+        `🔒 Mão exclusiva para membros Premium\n` +
+        `${newThread.url}`
       );
     }
 
+    // Confirma a publicação no tópico original
     await message.reply(
       command === "!post"
         ? `✅ Mão publicada no Premium: ${newThread.url}`
@@ -80,7 +106,10 @@ client.on("messageCreate", async (message) => {
     );
   } catch (err) {
     console.error(err);
-    await message.reply("❌ Erro ao publicar a mão. Verifique as permissões do bot.");
+
+    await message.reply(
+      "❌ Erro ao publicar a mão. Verifique as permissões do bot."
+    );
   }
 });
 
